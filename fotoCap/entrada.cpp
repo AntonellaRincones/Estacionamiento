@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <cstdlib>
 #include <string>
+#include <windows.h>
+#include <conio.h>
+#include <fstream>
 
 /*Librerias Opencv para manejo de imagenes y videostream*/
 #include "opencv2\highgui\highgui.hpp"
@@ -34,6 +37,11 @@ const string server = "tcp://127.0.0.1:3306";
 const string username = "root";
 const string password = "";
 
+sql::Driver     *driver; // Create a pointer to a MySQL driver object
+sql::Connection *dbConn; // Create a pointer to a database connection object
+sql::Statement  *stmt;   // Create a pointer to a Statement object to hold our SQL commands
+						 //sql::ResultSet  *res;    // Create a pointer to a ResultSet object to hold the results of any queries we run
+sql::PreparedStatement *pstmt, *pstmt2;
 
 /**Verifica si hay objetos circulares en la imagen
 @param Mat img: la imagen capturada por la webcam
@@ -320,6 +328,61 @@ int vacio(Mat img) {
 		return 0;
 	}
 }
+void revisarKeypress() {
+
+
+}
+
+void revisarEsta(VideoCapture cap) {
+	Mat imagen;
+	int i = 1;
+	if (cap.isOpened()) {
+		while (!GetAsyncKeyState(VK_F9)) {
+
+			//cap.read(imagen);
+			//cap >> imagen;
+			//imshow("captura", imagen);
+			if (i == 1) { imagen = imread("imagenestado1.jpg", 1); }
+			if (i == 2) { imagen = imread("imagenestado2.jpg", 1); }
+			if (i == 3) {
+				imagen = imread("imagenestado3.jpg", 1);
+				i = 1;
+			}
+
+			if (vacio(imagen) == 1) {
+
+
+				try
+				{
+					pstmt = dbConn->prepareStatement("CALL ocuparPuesto(?)"); //ocupar el primer puesto vacio
+					pstmt2 = dbConn->prepareStatement("CALL desocuparPuesto(?)");
+					identificaPuesto(imagen, pstmt, pstmt2);
+
+				}
+				catch (sql::SQLException e)
+				{
+					cout << "SQL error. No se pudo realizar la operacion. Mensaje: " << e.what() << endl;
+					system("pause");
+					exit(1);
+				}
+
+			}
+			i++;
+			waitKey(10000);
+		}
+
+	}
+	
+	cout << "La revision de estacionamiento se ha detenido" << endl;
+	cout << "Presione f8 para reanudar o esc para salir" << endl;
+	system("pause");
+	cout << endl;
+	cout << endl;
+	cout << endl;
+
+	
+}
+
 
 int main(void)
 { 
@@ -327,182 +390,145 @@ int main(void)
 
 	//imagen = imread("imagenlleno.jpg", 1);
 	
-	
-	
-	
-	//imshow("Captured", imagen);
-	//waitKey(0);
-	sql::Driver     *driver; // Create a pointer to a MySQL driver object
-	sql::Connection *dbConn; // Create a pointer to a database connection object
-	sql::Statement  *stmt;   // Create a pointer to a Statement object to hold our SQL commands
-	//sql::ResultSet  *res;    // Create a pointer to a ResultSet object to hold the results of any queries we run
-	sql::PreparedStatement *pstmt, *pstmt2;
+	cout << "Presione f8 para iniciar el programa" << endl;
+	cout << "Presione f9 para detener el programa" << endl;
+	cout << "Presione esc para salir" << endl;
+	system("pause");
 
-	
-	VideoCapture cap(0);
+	while (!GetAsyncKeyState(VK_ESCAPE)) {
+
+		if (GetAsyncKeyState(VK_F8)) {
+			cout << "Iniciando..." << endl;
+			//imshow("Captured", imagen);
+			//waitKey(0);
+			/*sql::Driver     *driver; // Create a pointer to a MySQL driver object
+			sql::Connection *dbConn; // Create a pointer to a database connection object
+			sql::Statement  *stmt;   // Create a pointer to a Statement object to hold our SQL commands
+									 //sql::ResultSet  *res;    // Create a pointer to a ResultSet object to hold the results of any queries we run
+			sql::PreparedStatement *pstmt, *pstmt2;*/
 
 
-	cap.set(CV_CAP_PROP_FRAME_WIDTH, 800);
-	cap.set(CV_CAP_PROP_FRAME_HEIGHT, 460);
-	//cap >> imagen;
-	//mientras la camara este funcional, tomar foto cada 10s
-	int i = 1;
+			VideoCapture cap(0);
 
-	if (cap.isOpened()) {
-		while (1) {
-			
-			//cap.read(imagen);
+
+			cap.set(CV_CAP_PROP_FRAME_WIDTH, 800);
+			cap.set(CV_CAP_PROP_FRAME_HEIGHT, 460);
 			//cap >> imagen;
-			//imshow("captura", imagen);
-			//if (i == 1) { imagen = imread("imagenestado1.jpg", 1); }
-			//if (i == 2) { imagen = imread("imagenestado2.jpg", 1); }
-			//if (i == 3) { 
-				//imagen = imread("imagenestado3.jpg", 1);
-				//i = 1;
-			//}
-			imagen = imread("imagenestado1.jpg", 1);
-			if (vacio(imagen) == 1) {
-				try
-				{
-					driver = get_driver_instance();
-				}
-				catch (sql::SQLException e)
-				{
-					cout << "Could not get a database driver. Error message: " << e.what() << endl;
-					system("pause");
-					exit(1);
-				}
+			//mientras la camara este funcional, tomar foto cada 10s
 
-				// Try to connect to the DBMS server
-				try
-				{
-					dbConn = driver->connect(server, username, password);
-				}
-				catch (sql::SQLException e)
-				{
-					cout << "Could not connect to database. Error message: " << e.what() << endl;
-					system("pause");
-					exit(1);
-				}
+			//abrir la conexion a BD
+			cout << "Conectando con la BD..." << endl;
+			try
+			{
+				driver = get_driver_instance();
+			}
+			catch (sql::SQLException e)
+			{
+				cout << "No se pudo obtener el driver de conexion. Mensaje de error: " << e.what() << endl;
+				system("pause");
+				exit(1);
+			}
 
-				stmt = dbConn->createStatement(); // Specify which connection our SQL statement should be executed on
+			// Try to connect to the DBMS server
+			try
+			{
+				dbConn = driver->connect(server, username, password);
+			}
+			catch (sql::SQLException e)
+			{
+				cout << "No se puede conectar con la BD. Mensaje de Error : " << e.what() << endl;
 
-												  // Try to query the database
-				try
-				{
+				system("pause");
+				exit(1);
+			}
 
-					stmt->execute("USE basedesarrollo");//seleccionar la DB
+			stmt = dbConn->createStatement(); // Specify which connection our SQL statement should be executed on
+
+											  // Try to query the database
+			try
+			{
+
+				stmt->execute("USE basedesarrollo");//seleccionar la DB
 													/*res = stmt->executeQuery("SELECT entrar('BBP13I')"); //realizar un query, guardar resultados en res
 													while (res->next()) { //navegar por el puntero res
 													id = res->getInt(1);//almacena el id obtenido en res
 													}*/
-				}
-				catch (sql::SQLException e)
-				{
-					cout << "SQL error. Error message: " << e.what() << endl;
-					system("pause");
-					exit(1);
-				}
-
-				try
-				{
-					pstmt = dbConn->prepareStatement("CALL ocuparPuesto(?)"); //ocupar el primer puesto vacio
-					pstmt2 = dbConn->prepareStatement("CALL desocuparPuesto(?)");
-					identificaPuesto(imagen, pstmt, pstmt2);
-					//pstmt->setInt(1, id);//asignarle al procedure ocuparPuesto el parametro id
-					//pstmt->execute();
-				}
-				catch (sql::SQLException e)
-				{
-					cout << "SQL error. Error message: " << e.what() << endl;
-					system("pause");
-					exit(1);
-				}
-
-				// While there are still results (i.e. rows/records) in our result set...
-				/*while (res->next())
-				{
-				// ...get each field we want and output it to the screen
-				// Note: The first field/column in our result-set is field 1 (one) and -NOT- field 0 (zero)
-				// Also, if we know the name of the field then we can also get it directly by name by using:
-				// res->getString("TheNameOfTheField");
-				cout << res->getString(1) << endl;
-				}*/
 			}
-			//i++;
-			waitKey(10000);
-		}
+			catch (sql::SQLException e)
+			{
+				cout << "SQL error. No se pudo seleccionar la BD: " << e.what() << endl;
+				system("pause");
+				exit(1);
+			}
 
-	}
+			cout << "Capturando estado del estacionamiento..." << endl;
+			int i = 1;
 
-	if (vacio(imagen) == 1) {
-		try
-		{
-			driver = get_driver_instance();
-		}
-		catch (sql::SQLException e)
-		{
-			cout << "Could not get a database driver. Error message: " << e.what() << endl;
-			system("pause");
-			exit(1);
-		}
+			revisarEsta(cap);
+			/*if (cap.isOpened()) {
+				while (1) {
 
-		// Try to connect to the DBMS server
-		try
-		{
-			dbConn = driver->connect(server, username, password);
-		}
-		catch (sql::SQLException e)
-		{
-			cout << "Could not connect to database. Error message: " << e.what() << endl;
-			system("pause");
-			exit(1);
-		}
+					//cap.read(imagen);
+					//cap >> imagen;
+					//imshow("captura", imagen);
+					if (i == 1) { imagen = imread("imagenestado1.jpg", 1); }
+					if (i == 2) { imagen = imread("imagenestado2.jpg", 1); }
+					if (i == 3) {
+						imagen = imread("imagenestado3.jpg", 1);
+						i = 1;
+					}
 
-		stmt = dbConn->createStatement(); // Specify which connection our SQL statement should be executed on
 
-										  // Try to query the database
-		try
-		{
+					//imagen = imread("imagenestado1.jpg", 1);
+					if (vacio(imagen) == 1) {
 
-			stmt->execute("USE desarrollo");//seleccionar la DB
-			/*res = stmt->executeQuery("SELECT entrar('BBP13I')"); //realizar un query, guardar resultados en res
-			while (res->next()) { //navegar por el puntero res
-				id = res->getInt(1);//almacena el id obtenido en res
+
+						try
+						{
+							pstmt = dbConn->prepareStatement("CALL ocuparPuesto(?)"); //ocupar el primer puesto vacio
+							pstmt2 = dbConn->prepareStatement("CALL desocuparPuesto(?)");
+							identificaPuesto(imagen, pstmt, pstmt2);
+							//pstmt->setInt(1, id);//asignarle al procedure ocuparPuesto el parametro id
+							//pstmt->execute();
+						}
+						catch (sql::SQLException e)
+						{
+							cout << "SQL error. No se pudo realizar la operacion. Mensaje: " << e.what() << endl;
+							system("pause");
+							exit(1);
+						}
+
+
+						// While there are still results (i.e. rows/records) in our result set...
+						while (res->next())
+						{
+						// ...get each field we want and output it to the screen
+						// Note: The first field/column in our result-set is field 1 (one) and -NOT- field 0 (zero)
+						// Also, if we know the name of the field then we can also get it directly by name by using:
+						// res->getString("TheNameOfTheField");
+						cout << res->getString(1) << endl;
+						}
+					}
+					i++;
+					waitKey(10000);
+				}
+
 			}*/
-		}
-		catch (sql::SQLException e)
-		{
-			cout << "SQL error. Error message: " << e.what() << endl;
-			system("pause");
-			exit(1);
-		}
 
-		try
-		{
-			pstmt = dbConn->prepareStatement("CALL ocuparPuesto(?)"); //ocupar el primer puesto vacio
-			pstmt2 = dbConn->prepareStatement("CALL desocuparPuesto(?)");
-			identificaPuesto(imagen,pstmt,pstmt2);
-			//pstmt->setInt(1, id);//asignarle al procedure ocuparPuesto el parametro id
-			//pstmt->execute();
+			//cerrar la conexion a bd
+			try {
+				dbConn->close();
+			}
+			catch (sql::SQLException e) {
+				cout << "SQL error. No se pudo cerrar la conexion a la BD. Mensaje: " << e.what() << endl;
+				system("pause");
+				exit(1);
+			}
+
 		}
-		catch (sql::SQLException e)
-		{
-			cout << "SQL error. Error message: " << e.what() << endl;
-			system("pause");
-			exit(1);
-		}
-		
-		// While there are still results (i.e. rows/records) in our result set...
-		/*while (res->next())
-		{
-			// ...get each field we want and output it to the screen
-			// Note: The first field/column in our result-set is field 1 (one) and -NOT- field 0 (zero)
-			// Also, if we know the name of the field then we can also get it directly by name by using:
-			// res->getString("TheNameOfTheField");
-			cout << res->getString(1) << endl;
-		}*/
 	}
+	
+	
 
 	
 	//direccion(id);
