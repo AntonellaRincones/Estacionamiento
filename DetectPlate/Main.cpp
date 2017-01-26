@@ -7,6 +7,7 @@
 #include <cppconn/resultset.h>
 #include <cppconn/statement.h>
 #include <cppconn/prepared_statement.h>
+#include <windows.h>
 
 using namespace std;
 using namespace cv;
@@ -43,114 +44,113 @@ int main(void) {
 
     cv::Mat imgOriginalScene;           // input image
 
-    imgOriginalScene = cv::imread("19.png");         // open image
+    //imgOriginalScene = cv::imread("19.png");         // open image
+	cout << "Detector de placas inciado.." << endl;
+	
+	while (!GetAsyncKeyState(VK_ESCAPE)) {
+		cout << "presion enter para capturar la placa" << endl;
+		system("pause");
+		if (GetAsyncKeyState(VK_RETURN)) {
+			cap >> imgOriginalScene;
+		}
 
-    if (imgOriginalScene.empty()) {                             // if unable to open image
-        std::cout << "error: image not read from file\n\n";     // show error message on command line
-        return(0);                                              // and exit program
-    }
 
-    std::vector<PossiblePlate> vectorOfPossiblePlates = detectPlatesInScene(imgOriginalScene);          // detect plates
+		if (!imgOriginalScene.empty()) {    
+			std::vector<PossiblePlate> vectorOfPossiblePlates = detectPlatesInScene(imgOriginalScene);          // detect plates
 
-    vectorOfPossiblePlates = detectCharsInPlates(vectorOfPossiblePlates);                               // detect chars in plates
-
-    cv::imshow("imgOriginalScene", imgOriginalScene);           // show scene image
-
-    if (vectorOfPossiblePlates.empty()) {                                               // if no plates were found
-        std::cout << std::endl << "no license plates were detected" << std::endl;       // inform user no plates were found
-    } else {                                                                            // else
-                // if we get in here vector of possible plates has at leat one plate
-
-                // sort the vector of possible plates in DESCENDING order (most number of chars to least number of chars)
-        std::sort(vectorOfPossiblePlates.begin(), vectorOfPossiblePlates.end(), PossiblePlate::sortDescendingByNumberOfChars);
-
-                // suppose the plate with the most recognized chars (the first plate in sorted by string length descending order) is the actual plate
-        PossiblePlate licPlate = vectorOfPossiblePlates.front();
-
-     //   cv::imshow("imgPlate", licPlate.imgPlate);            // show crop of plate and threshold of plate
-       // cv::imshow("imgThresh", licPlate.imgThresh);
-
-        if (licPlate.strChars.length() == 0) {                                                      // if no chars were found in the plate
-            std::cout << std::endl << "no characters were detected" << std::endl << std::endl;      // show message
-            return(0);                                                                              // and exit program
-		}else {
-			cout << "placa " << licPlate.strChars << endl;
-			try
-			{
-				driver = get_driver_instance();
-			}
-			catch (sql::SQLException e)
-			{
-				cout << "Could not get a database driver. Error message: " << e.what() << endl;
-				system("pause");
-				exit(1);
-			}
-
-			// Try to connect to the DBMS server
-			try
-			{
-				dbConn = driver->connect(server, username, password);
-			}
-			catch (sql::SQLException e)
-			{
-				cout << "Could not connect to database. Error message: " << e.what() << endl;
-				system("pause");
-				exit(1);
-			}
-
-			stmt = dbConn->createStatement(); // Specify which connection our SQL statement should be executed on
-
-											  // Try to query the database
-			try
-			{
-
-				stmt->execute("USE basedesarrollo");//seleccionar la DB
-													/*res = stmt->executeQuery("SELECT entrar('BBP13I')"); //realizar un query, guardar resultados en res
-													while (res->next()) { //navegar por el puntero res
-													id = res->getInt(1);//almacena el id obtenido en res
-													}*/
-			}
-			catch (sql::SQLException e)
-			{
-				cout << "SQL error. Error message: " << e.what() << endl;
-				system("pause");
-				exit(1);
-			}
+			vectorOfPossiblePlates = detectCharsInPlates(vectorOfPossiblePlates);                               // detect chars in plates// if unable to open image
 			
-			try
-			{
-				pstmt = dbConn->prepareStatement("CALL insertEntrada(?,?)"); //ocupar el primer puesto vacio
-				//pstmt2 = dbConn->prepareStatement("CALL desocuparPuesto(?)");
-				
-				
-				
-				pstmt->setString(1, licPlate.strChars);
-				pstmt->setInt(2,1);
-				pstmt->execute();
-
+			if (vectorOfPossiblePlates.empty()) {                                               // if no plates were found
+				std::cout << std::endl << "No se detecto placa" << std::endl;
+				cout << endl;
+				// inform user no plates were found
+				cout << endl;
+				cout << endl;
 			}
-			catch (sql::SQLException e)
-			{
-				cout << "SQL error. Error message: " << e.what() << endl;
-				system("pause");
-				exit(1);
+			else {                                                                            // else
+																							  // if we get in here vector of possible plates has at leat one plate
+
+																							  // sort the vector of possible plates in DESCENDING order (most number of chars to least number of chars)
+				std::sort(vectorOfPossiblePlates.begin(), vectorOfPossiblePlates.end(), PossiblePlate::sortDescendingByNumberOfChars);
+
+				// suppose the plate with the most recognized chars (the first plate in sorted by string length descending order) is the actual plate
+				PossiblePlate licPlate = vectorOfPossiblePlates.front();
+
+
+				if (licPlate.strChars.length() == 0) {                                                      // if no chars were found in the plate
+					std::cout << std::endl << "No se detecto placa" << std::endl << std::endl;      // show message
+					cout << endl;
+					// inform user no plates were found
+					cout << endl;
+					cout << endl; // and exit program
+				}
+				else {
+					//cout << "placa " << licPlate.strChars << endl;
+
+					try
+					{
+						driver = get_driver_instance();
+					}
+					catch (sql::SQLException e)
+					{
+						cout << "No se pudo obtener driver de la BD. Mensaje de Error: " << e.what() << endl;
+						system("pause");
+						exit(1);
+					}
+
+					// Try to connect to the DBMS server
+					try
+					{
+						dbConn = driver->connect(server, username, password);
+					}
+					catch (sql::SQLException e)
+					{
+						cout << "No se pudo conectar con la BD. Mensaje de error: " << e.what() << endl;
+						system("pause");
+						exit(1);
+					}
+
+					stmt = dbConn->createStatement(); // Specify which connection our SQL statement should be executed on
+
+													  // Try to query the database
+					try
+					{
+
+						stmt->execute("USE basedesarrollo");//seleccionar la DB
+
+					}
+					catch (sql::SQLException e)
+					{
+						cout << "No se pudo acceder a la BD. Mensaje de Error: " << e.what() << endl;
+						system("pause");
+						exit(1);
+					}
+					cout << licPlate.strChars << endl;
+					try
+					{
+						pstmt = dbConn->prepareStatement("CALL insertEntrada(?)"); //ocupar el primer puesto vacio
+
+						pstmt->setString(1, licPlate.strChars);
+						
+						pstmt->execute();
+						cout << "placa capturada con exito" << endl;
+						system("pause");
+						//imgOriginalScene = NULL;
+					}
+					catch (sql::SQLException e)
+					{
+						cout << "No se pudo ejecutar procedimiento. Mensaje de error: " << e.what() << endl;
+						cout << "El auto no esta registrado " << endl;
+						system("pause");
+						
+					}
+				}
+
 			}
 		}
 
-        /*drawRedRectangleAroundPlate(imgOriginalScene, licPlate);                // draw red rectangle around plate
 
-        std::cout << std::endl << "license plate read from image = " << licPlate.strChars << std::endl;     // write license plate text to std out
-        std::cout << std::endl << "-----------------------------------------" << std::endl;
-
-        writeLicensePlateCharsOnImage(imgOriginalScene, licPlate);              // write license plate text on the image
-
-        cv::imshow("imgOriginalScene", imgOriginalScene);                       // re-show scene image
-
-        cv::imwrite("imgOriginalScene.png", imgOriginalScene); */                 // write image out to file
-    }
-
-    cv::waitKey(0);                 // hold windows open until user presses a key
-
+	}
     return(0);
 }
 
