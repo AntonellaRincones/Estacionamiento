@@ -45,14 +45,58 @@ int main(void) {
     cv::Mat imgOriginalScene;           // input image
 
     //imgOriginalScene = cv::imread("19.png");         // open image
-	cout << "Detector de placas inciado.." << endl;
+	cout << "(Entrada) Detector de placas inciado..., presione ESC para salir" << endl;
+
+
+	try
+	{
+		driver = get_driver_instance();
+	}
+	catch (sql::SQLException e)
+	{
+		cout << "No se pudo obtener driver de la BD. Mensaje de Error: " << e.what() << endl;
+		system("pause");
+		exit(1);
+	}
+
+	// Try to connect to the DBMS server
+	try
+	{
+		dbConn = driver->connect(server, username, password);
+	}
+	catch (sql::SQLException e)
+	{
+		cout << "No se pudo conectar con la BD. Mensaje de error: " << e.what() << endl;
+		system("pause");
+		exit(1);
+	}
+
+	stmt = dbConn->createStatement(); // Specify which connection our SQL statement should be executed on
+
+									  // Try to query the database
+	try
+	{
+
+		stmt->execute("USE basedesarrollo");//seleccionar la DB
+
+	}
+	catch (sql::SQLException e)
+	{
+		cout << "No se pudo acceder a la BD. Mensaje de Error: " << e.what() << endl;
+		system("pause");
+		exit(1);
+	}
+
 	
 	while (!GetAsyncKeyState(VK_ESCAPE)) {
-		cout << "presion enter para capturar la placa" << endl;
-		system("pause");
-		if (GetAsyncKeyState(VK_RETURN)) {
+		//cout << "presion enter para capturar la placa" << endl;
+		
+		//system("pause");
+		cout << "Capturando placa.... " << endl;
+		//if (GetAsyncKeyState(VK_RETURN)) {
 			cap >> imgOriginalScene;
-		}
+			//imgOriginalScene = cv::imread("19.png");
+		//}
 
 
 		if (!imgOriginalScene.empty()) {    
@@ -87,44 +131,7 @@ int main(void) {
 				else {
 					//cout << "placa " << licPlate.strChars << endl;
 
-					try
-					{
-						driver = get_driver_instance();
-					}
-					catch (sql::SQLException e)
-					{
-						cout << "No se pudo obtener driver de la BD. Mensaje de Error: " << e.what() << endl;
-						system("pause");
-						exit(1);
-					}
-
-					// Try to connect to the DBMS server
-					try
-					{
-						dbConn = driver->connect(server, username, password);
-					}
-					catch (sql::SQLException e)
-					{
-						cout << "No se pudo conectar con la BD. Mensaje de error: " << e.what() << endl;
-						system("pause");
-						exit(1);
-					}
-
-					stmt = dbConn->createStatement(); // Specify which connection our SQL statement should be executed on
-
-													  // Try to query the database
-					try
-					{
-
-						stmt->execute("USE basedesarrollo");//seleccionar la DB
-
-					}
-					catch (sql::SQLException e)
-					{
-						cout << "No se pudo acceder a la BD. Mensaje de Error: " << e.what() << endl;
-						system("pause");
-						exit(1);
-					}
+					
 					cout << licPlate.strChars << endl;
 					try
 					{
@@ -134,22 +141,32 @@ int main(void) {
 						
 						pstmt->execute();
 						cout << "placa capturada con exito" << endl;
-						system("pause");
+						Sleep(30000);
+						//system("pause");
 						//imgOriginalScene = NULL;
 					}
 					catch (sql::SQLException e)
 					{
 						cout << "No se pudo ejecutar procedimiento. Mensaje de error: " << e.what() << endl;
 						cout << "El auto no esta registrado " << endl;
-						system("pause");
+						//system("pause");
 						
 					}
+					
 				}
 
 			}
+			
 		}
-
-
+		Sleep(10000);
+		
+	}
+	try {
+		dbConn->close();
+	}
+	catch (sql::SQLException e) {
+		cout << "No se pudo cerrar la conexion a la BD. Mensaje de error: " << e.what() << endl;
+		exit(1);
 	}
     return(0);
 }
